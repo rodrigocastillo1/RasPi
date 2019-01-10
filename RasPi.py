@@ -38,14 +38,16 @@ def quoteTel(bot, update): # Definimos la función que enviará una cita random.
     quotes_list = file.read().split("\n\n")
     quote = random.choice(quotes_list)
     chat_id = update.message.chat_id # Guardamos el ID de la conversación para poder responder.
+    trans_text = trans.translate(quote, dest=language)
     bot.send_chat_action(chat_id, 'typing') # Enviando ...
     time.sleep(1) #La respuesta del bot tarda 1 segundo en ejecutarse
-    bot.send_message(chat_id, text=quote) # Con la función 'send_message()' del bot, enviamos al ID almacenado el texto que queremos.
+    bot.send_message(chat_id, text=trans_text.text) # Con la función 'send_message()' del bot, enviamos al ID almacenado el texto que queremos.
 
 def translateTel(bot, update, args): # Definimos la función que enviará una cita random.
     chat_id = update.message.chat_id # Guardamos el ID de la conversación para poder responder.
     texto = ' '.join(args)
     trans_text = trans.translate(texto, dest=language)
+    print(trans_text)
     bot.send_chat_action(chat_id, 'typing') # Enviando ...
     time.sleep(1) #La respuesta del bot tarda 1 segundo en ejecutarse
     bot.send_message(chat_id, text=trans_text.text) # Con la función 'send_message()' del bot, enviamos al ID almacenado el texto que queremos.
