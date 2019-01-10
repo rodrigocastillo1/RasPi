@@ -4,14 +4,15 @@ from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler
 from telegram.ext import Filters
 import time # Librería para hacer que el programa que controla el bot no se acabe.
-#from quotes import random
 from googletrans import Translator
 import random
+import os
+from PIL import Image
 
  
 # Aqui definiremos aparte del Token, por ejemplo los ids de los grupos y pondríamos grupo= -XXXXX 
  
-TOKEN = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' # Nuestro token del bot.
+TOKEN = '733479422:AAEy9CdhfM79fousTwJG_Sbv-aRAetk7utI' # Nuestro token del bot.
 AYUDA = 'Puedes utilizar los siguientes comandos : \n\n/ayuda - Guia para utilizar el bot. \n/info - Informacion De interes \n/hola - Saludo del Bot \n/piensa3D - Informacion sobre Piensa3D \n\n'
 LENGUAJES = 'Los siguientes lenguajes están disponibles : \n\nEspañol \nInglés \nFrancés \nAlemán \nJaponés \nItaliano \n\n Ingresa: /language seguido del idioma \n\n'
 languages_dict = {"Español": 'es', "Inglés": 'en', "Francés": 'fr', "Japonés": 'ja', "Italiano": 'it', "Alemán": 'de'}
@@ -63,14 +64,21 @@ def languageTel(bot, update, args):
 def grayTel(bot, update):
     chat_id = update.message.chat_id
     photo_file = bot.get_file(update.message.photo[-1].file_id)
-    response = requests.get(photo_file['file_path'])
-    img = Image.open(BytesIO(response.content))
-    img = img.convert('LA')
-    bio = BytesIO()
-    bio.name = 'image.png'
-    img.save(bio, 'PNG')
-    bio.seek(0)
-    bot.send_photo(chat_id, photo=bio)
+    file_name = os.path.join('images','{}.png'.format(photo_file.file_id))
+    #print(file_name)
+    photo_file.download(file_name)
+    img = Image.open(file_name).convert('LA')
+    os.remove(file_name)
+    img.save(file_name)
+    bot.send_chat_action(chat_id, 'upload_photo') # Enviando ...
+    time.sleep(1) #La respuesta del bot tarda 1 segundo en ejecutarse
+    photo = open(file_name, 'rb')
+    try:
+        bot.send_photo(chat_id, photo=photo)
+    except Exception as ex:
+        print(ex)
+    bot.send_message(chat_id, text="Cambié tu foto a escala de grises")
+
 
 hello_handler = CommandHandler('hello', helloTel)
 help_handler = CommandHandler('help', helpTel)
