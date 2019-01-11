@@ -9,6 +9,8 @@ import random
 import os
 from PIL import Image
 import threading
+import datetime
+import 
 
 """from subprocess import call #la necesitamos para la interrupcion de teclado
 import RPi.GPIO as GPIO
@@ -98,6 +100,10 @@ def grayTel(bot, update):
 
 def security(chat_id):
 	global stop_flag, itsok_flag
+	currentdate = datetime.datetime.now().strftime("%Y-%m-%d_%H%M_%S")
+	file_path = os.path.join('security','{}.png'.format(currentdate))
+	os.system("fswebcam" + file_path)
+	photo = open(file_path, 'rb')
 	numeros = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 	
 	while not stop_flag:
@@ -106,6 +112,14 @@ def security(chat_id):
 		print(num)
 		if(num == 5):
 			bot.send_message(chat_id, text="¡Alerta!")
+			currentdate = datetime.datetime.now().strftime("%Y-%m-%d_%H%M_%S")
+			file_path = os.path.join('security','{}.png'.format(currentdate))
+			os.system("fswebcam" + file_path)
+			photo = open(file_path, 'rb')
+			try:
+		        bot.send_photo(chat_id, photo=photo)
+		    except Exception as ex:
+		        print(ex)
 			while not itsok_flag:
 				for i in range(10):
 					#GPIO.output(Buzz, True)
