@@ -9,6 +9,19 @@ import random
 import os
 from PIL import Image
 
+from subprocess import call #la necesitamos para la interrupcion de teclado
+import RPi.GPIO as GPIO
+
+GPIO.setmode(GPIO.BOARD) #Queremos usar la numeracion de la placa
+ 
+#Definimos los dos pines del sensor que hemos conectado: Trigger y Echo
+Trig = 11
+Echo = 13
+ 
+#Hay que configurar ambos pines del HC-SR04
+GPIO.setup(Trig, GPIO.OUT)
+GPIO.setup(Echo, GPIO.IN)
+
  
 # Aqui definiremos aparte del Token, por ejemplo los ids de los grupos y pondríamos grupo= -XXXXX 
  
@@ -97,3 +110,32 @@ dispatcher.add_handler(language_handler)
 
 update.start_polling()
 
+def detectarObstaculo():
+ 
+   GPIO.output(Trig, False) #apagamos el pin Trig
+   time.sleep(2*10**-6) #esperamos dos microsegundos
+   GPIO.output(Trig, True) #encendemos el pin Trig
+   time.sleep(10*10**-6) #esperamos diez microsegundos
+   GPIO.output(Trig, False) #y lo volvemos a apagar
+
+   while GPIO.input(Echo) == 0:
+      start = time.time()
+   while GPIO.input(Echo) == 1:
+      end = time.time()
+
+   duracion = end-start
+   duracion = duracion*10**6
+   medida = duracion/58 #dividimos entre 58 para que muestre la distancia en cm
+   return medida
+   #print("%.2f" %medida) #mostramos resultado
+
+while True:
+   try:
+      print("%.2f", detectarObstaculo())
+   except Exception as ex:
+        print(ex)
+        print("Ha ocurrido un error inesperado. Vuelva a lanzar el bot")
+        print("Reiniciando GPIO")
+        time.sleep(1)
+		GPIO.cleanup()
+		print("Proceso terminado")
