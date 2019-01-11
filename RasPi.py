@@ -8,19 +8,19 @@ from googletrans import Translator
 import random
 import os
 from PIL import Image
+import threading
 
-from subprocess import call #la necesitamos para la interrupcion de teclado
+"""from subprocess import call #la necesitamos para la interrupcion de teclado
 import RPi.GPIO as GPIO
 
 GPIO.setmode(GPIO.BOARD) #Queremos usar la numeracion de la placa
  
-#Definimos los dos pines del sensor que hemos conectado: Trigger y Echo
-Trig = 11
-Echo = 13
- 
-#Hay que configurar ambos pines del HC-SR04
-GPIO.setup(Trig, GPIO.OUT)
-GPIO.setup(Echo, GPIO.IN)
+#Definimos los dos pines del sensor que hemos conectado:
+Sens = 10
+Buzz = 12
+
+GPIO.setup(Sens, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(Buzz, GPIO.OUT)"""
 
  
 # Aqui definiremos aparte del Token, por ejemplo los ids de los grupos y pondríamos grupo= -XXXXX 
@@ -28,6 +28,7 @@ GPIO.setup(Echo, GPIO.IN)
 TOKEN = '733479422:AAEy9CdhfM79fousTwJG_Sbv-aRAetk7utI' # Nuestro token del bot.
 AYUDA = 'Puedes utilizar los siguientes comandos : \n\n/ayuda - Guia para utilizar el bot. \n/info - Informacion De interes \n/hola - Saludo del Bot \n/piensa3D - Informacion sobre Piensa3D \n\n'
 LENGUAJES = 'Los siguientes lenguajes están disponibles : \n\nEspañol \nInglés \nFrancés \nAlemán \nJaponés \nItaliano \n\n Ingresa: /language seguido del idioma \n\n'
+SECURITY = 'Sistema de seguridad, escriba: \n\n/security enable - para habilitar \n\n/security disable - para deshabilitar \n\n/security itsok - para apagar la alarma'
 languages_dict = {"Español": 'es', "Inglés": 'en', "Francés": 'fr', "Japonés": 'ja', "Italiano": 'it', "Alemán": 'de'}
 
 bot = telegram.Bot(token=TOKEN) # Creamos el objeto de nuestro bot.
@@ -35,7 +36,8 @@ update = Updater(token=TOKEN)
 dispatcher = update.dispatcher
 trans = Translator()
 language = 'es'
-
+stop_flag = ''
+itsok_flag = ''
 
 def helloTel(bot, update):
     bot.send_message(chat_id=update.message.chat_id,
@@ -94,6 +96,48 @@ def grayTel(bot, update):
         print(ex)
     bot.send_message(chat_id, text="Cambié tu foto a escala de grises")
 
+def security(chat_id):
+	global stop_flag, itsok_flag
+	numeros = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+	
+	while not stop_flag:
+		#if GPIO.input(Sens) == GPIO.HIGH:
+		num = random.choice(numeros)
+		print(num)
+		if(num == 5):
+			bot.send_message(chat_id, text="¡Alerta!")
+			while not itsok_flag:
+				for i in range(10):
+					#GPIO.output(Buzz, True)
+					time.sleep(0.5)
+					#GPIO.output(Buzz, False)
+			itsok_flag = ''
+	stop_flag = ''
+
+def securityTel(bot, update, args):
+	chat_id = update.message.chat_id
+	global stop_flag, itsok_flag
+	if not args:
+		bot.send_message(chat_id, text=SECURITY)
+	elif ''.join(args) == "enable":		#COMANDO enable: Activa el sistema
+		bot.send_message(chat_id, text="Iniciando servicio de seguridad...")
+		time.sleep(1)
+		bot.send_message(chat_id, text="¡Armado!")
+		#security(chat_id)
+		t = threading.Thread(target=security, args=[chat_id])
+		t.start()
+
+	elif ''.join(args) == "disable":	#COMANDO ITSOK: Desactiva el sistema
+		stop_flag = "stop"
+		bot.send_message(chat_id, text="Sistema desactivado. Está indefenso ante intrusos.")
+
+	elif ''.join(args) == "itsok":		#COMANDO ITSOK: Apaga la alarma
+		itsok_flag = "itsok"
+		bot.send_message(chat_id, text="Apagando alarma. Sistema armado.")
+
+	else:
+		bot.send_message(chat_id, text="Comando inválido")
+
 
 hello_handler = CommandHandler('hello', helloTel)
 help_handler = CommandHandler('help', helpTel)
@@ -101,41 +145,17 @@ quote_handler = CommandHandler('quote', quoteTel)
 translate_handler = CommandHandler('translate', translateTel, pass_args=True)
 gray_handler = MessageHandler(Filters.photo, grayTel)
 language_handler = CommandHandler('language', languageTel, pass_args=True)
+security_handler = CommandHandler('security', securityTel, pass_args=True)
+
 dispatcher.add_handler(hello_handler)
 dispatcher.add_handler(help_handler)
 dispatcher.add_handler(quote_handler)
 dispatcher.add_handler(translate_handler)
 dispatcher.add_handler(gray_handler)
 dispatcher.add_handler(language_handler)
+dispatcher.add_handler(security_handler)
 
 update.start_polling()
+update.idle()
 
-def detectarObstaculo():
- 
-   GPIO.output(Trig, False) #apagamos el pin Trig
-   time.sleep(2*10**-6) #esperamos dos microsegundos
-   GPIO.output(Trig, True) #encendemos el pin Trig
-   time.sleep(10*10**-6) #esperamos diez microsegundos
-   GPIO.output(Trig, False) #y lo volvemos a apagar
-
-   while GPIO.input(Echo) == 0:
-      start = time.time()
-   while GPIO.input(Echo) == 1:
-      end = time.time()
-
-   duracion = end-start
-   duracion = duracion*10**6
-   medida = duracion/58 #dividimos entre 58 para que muestre la distancia en cm
-   return medida
-   #print("%.2f" %medida) #mostramos resultado
-
-while True:
-   try:
-      print("%.2f", detectarObstaculo())
-   except Exception as ex:
-        print(ex)
-        print("Ha ocurrido un error inesperado. Vuelva a lanzar el bot")
-        print("Reiniciando GPIO")
-        time.sleep(1)
-		GPIO.cleanup()
-		print("Proceso terminado")
+GPIO.cleanup()
